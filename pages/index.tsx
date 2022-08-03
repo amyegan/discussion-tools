@@ -10,6 +10,12 @@ type HomeProps = {
 };
 
 const Home: NextPage<HomeProps> = ({ discussions }) => {
+  let countByTag = (label: string) => {
+    discussions.filter((discussion) =>
+      discussion.labels.some((l) => l.name === label)
+    );
+  };
+
   return (
     <div className={styles.container}>
       <Head>
@@ -36,7 +42,15 @@ const Home: NextPage<HomeProps> = ({ discussions }) => {
                 <p>
                   {discussion.number} - {discussion.title}
                 </p>
-                <p>Updated: {discussion.updatedAt}</p>
+                <p>{`Updated: ${discussion.updatedAt}`}</p>
+                <div>
+                  <ul>
+                    {discussion?.labels?.length > 0 &&
+                      discussion.labels.map((label) => (
+                        <li key={label.id}>{label.name}</li>
+                      ))}
+                  </ul>
+                </div>
               </a>
             </div>
           ))}
@@ -65,6 +79,22 @@ type Discussion = {
   number: string;
   url: string;
   updatedAt: Date;
+  labels: Array<{ id: string; name: string; description: string }>;
+  category: {
+    id: string;
+    name: string;
+  };
+};
+
+type QueryData = {
+  title: string;
+  id: string;
+  number: string;
+  url: string;
+  updatedAt: Date;
+  labels: {
+    nodes: Array<{ id: string; name: string; description: string }>;
+  };
   category: {
     id: string;
     name: string;
@@ -79,41 +109,47 @@ export async function getServerSideProps() {
   console.log("date string", dateString);
 
   let query = `repo:vercel/community updated:${dateString} sort:updated`;
+  let query2 = `repo:vercel/community label:shipped sort:updated`;
   const { data } = await client.query({
     query: gql`
       query Discussions($query: String!) {
         discussions: search(query: $query, type: DISCUSSION, first: 20) {
-          edges {
-            node {
-              ... on Discussion {
-                id
-                number
+          nodes {
+            ... on Discussion {
+              id
+              number
+              url
+              title
+              createdAt
+              updatedAt
+              author {
+                login
                 url
-                title
-                createdAt
-                updatedAt
-                author {
-                  login
-                  url
-                }
-                category {
+              }
+              category {
+                id
+                name
+                description
+              }
+              labels(first: 10) {
+                nodes {
                   id
                   name
                   description
                 }
-                comments(first: 20) {
-                  edges {
-                    cursor
-                    node {
-                      id
-                      createdAt
-                      author {
-                        login
-                        url
-                      }
-                      authorAssociation
-                      isAnswer
+              }
+              comments(first: 20) {
+                edges {
+                  cursor
+                  node {
+                    id
+                    createdAt
+                    author {
+                      login
+                      url
                     }
+                    authorAssociation
+                    isAnswer
                   }
                 }
               }
@@ -122,23 +158,24 @@ export async function getServerSideProps() {
         }
       }
     `,
-    variables: { query },
+    variables: { query: query2 },
   });
 
-  const discussions = data.discussions.edges.map((edge) => {
-    const dateUpdated = new Date(edge.node.updatedAt);
+  const discussions = data.discussions.nodes.map((node: QueryData) => {
+    const dateUpdated = new Date(node.updatedAt);
     const updatedAt = dateUpdated.toLocaleDateString(undefined, {
       dateStyle: "long",
     });
     return {
-      title: edge.node.title,
-      id: edge.node.id,
-      number: edge.node.number,
-      url: edge.node.url,
+      title: node.title,
+      id: node.id,
+      number: node.number,
+      url: node.url,
       updatedAt,
+      labels: node.labels.nodes,
       category: {
-        id: edge.node.category.id,
-        name: edge.node.category.name,
+        id: node.category.id,
+        name: node.category.name,
       },
     };
   });
