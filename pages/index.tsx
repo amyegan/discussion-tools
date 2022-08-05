@@ -6,16 +6,11 @@ import { gql } from "@apollo/client";
 import client from "../apollo-client";
 
 type HomeProps = {
-  discussions: [Discussion];
+  discussions: Discussion[];
+  labels: Label[];
 };
 
-const Home: NextPage<HomeProps> = ({ discussions }) => {
-  let countByTag = (label: string) => {
-    discussions.filter((discussion) =>
-      discussion.labels.some((l) => l.name === label)
-    );
-  };
-
+const Home: NextPage<HomeProps> = ({ discussions, labels }) => {
   return (
     <div className={styles.container}>
       <Head>
@@ -79,110 +74,38 @@ type Discussion = {
   number: string;
   url: string;
   updatedAt: Date;
-  labels: Array<{ id: string; name: string; description: string }>;
+  labels: Array<Label>;
   category: {
     id: string;
     name: string;
   };
 };
 
-type QueryData = {
-  title: string;
-  id: string;
-  number: string;
-  url: string;
-  updatedAt: Date;
-  labels: {
-    nodes: Array<{ id: string; name: string; description: string }>;
-  };
-  category: {
-    id: string;
-    name: string;
-  };
-};
+type Label = { id: string; name: string; description: string };
 
 export async function getServerSideProps() {
   let today = new Date();
   const offset = today.getTimezoneOffset();
   today = new Date(today.getTime() - offset * 60 * 1000);
   const dateString = today.toISOString().split("T")[0];
-  console.log("date string", dateString);
 
-  let query = `repo:vercel/community updated:${dateString} sort:updated`;
-  let query2 = `repo:vercel/community label:shipped sort:updated`;
-  const { data } = await client.query({
-    query: gql`
-      query Discussions($query: String!) {
-        discussions: search(query: $query, type: DISCUSSION, first: 20) {
-          nodes {
-            ... on Discussion {
-              id
-              number
-              url
-              title
-              createdAt
-              updatedAt
-              author {
-                login
-                url
-              }
-              category {
-                id
-                name
-                description
-              }
-              labels(first: 10) {
-                nodes {
-                  id
-                  name
-                  description
-                }
-              }
-              comments(first: 20) {
-                edges {
-                  cursor
-                  node {
-                    id
-                    createdAt
-                    author {
-                      login
-                      url
-                    }
-                    authorAssociation
-                    isAnswer
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    `,
-    variables: { query: query2 },
-  });
-
-  const discussions = data.discussions.nodes.map((node: QueryData) => {
-    const dateUpdated = new Date(node.updatedAt);
-    const updatedAt = dateUpdated.toLocaleDateString(undefined, {
-      dateStyle: "long",
-    });
-    return {
-      title: node.title,
-      id: node.id,
-      number: node.number,
-      url: node.url,
-      updatedAt,
-      labels: node.labels.nodes,
-      category: {
-        id: node.category.id,
-        name: node.category.name,
-      },
-    };
-  });
+  let responses = await Promise.allSettled([
+    fetch("http://localhost:3000/api/discussions"),
+    fetch(`http://localhost:3000/api/labels`),
+  ]);
+  let discussions =
+    responses[0].status === "fulfilled"
+      ? await (responses[0] as PromiseFulfilledResult<Response>).value.json()
+      : [];
+  let labels =
+    responses[0].status === "fulfilled"
+      ? await (responses[1] as PromiseFulfilledResult<Response>).value.json()
+      : [];
 
   return {
     props: {
       discussions,
+      labels,
     },
   };
 }
