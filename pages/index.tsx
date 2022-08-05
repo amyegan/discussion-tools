@@ -4,6 +4,7 @@ import Image from "next/image";
 import styles from "../styles/Home.module.css";
 import { gql } from "@apollo/client";
 import client from "../apollo-client";
+import { useState } from "react";
 
 type HomeProps = {
   discussions: Discussion[];
@@ -11,6 +12,31 @@ type HomeProps = {
 };
 
 const Home: NextPage<HomeProps> = ({ discussions, labels }) => {
+  const [selectedLabel, setSelectedLabel] = useState();
+  const [displayDiscussions, setDisplayDiscussions] = useState(discussions);
+
+  let handleLabelSelectionChange = (event: any) => {
+    let newLabel = event.target.value;
+    setSelectedLabel(newLabel);
+
+    if (newLabel) {
+      let filteredDiscussions = discussions.filter((discussion) => {
+        return discussion.labels.some((l) => l.name === newLabel);
+      });
+      setDisplayDiscussions(filteredDiscussions);
+      return;
+    } else {
+      setDisplayDiscussions(discussions);
+    }
+  };
+
+  let handleSubmit = (event: any) => {
+    event.preventDefault();
+
+    let selectedLabel = event.target.githubLabel.value;
+    console.log("submitted label selection", selectedLabel);
+  };
+
   return (
     <div className={styles.container}>
       <Head>
@@ -24,13 +50,35 @@ const Home: NextPage<HomeProps> = ({ discussions, labels }) => {
           Welcome to <a href="https://nextjs.org">Next.js!</a>
         </h1>
 
+        <form
+          onSubmit={(e) => {
+            handleSubmit(e);
+          }}
+        >
+          <label htmlFor="githubLabel">Label filter</label>
+          <select
+            name="pets"
+            id="githubLabel"
+            onChange={(e) => {
+              handleLabelSelectionChange(e);
+            }}
+          >
+            <option value="">--Please choose an option--</option>
+            {labels.map((label) => (
+              <option value={label.name} key={label.id}>
+                {label.name}
+              </option>
+            ))}
+          </select>
+        </form>
+
         <p className={styles.description}>
           Get started by editing{" "}
           <code className={styles.code}>pages/index.tsx</code>
         </p>
 
         <div className={styles.grid}>
-          {discussions.map((discussion: Discussion) => (
+          {displayDiscussions.map((discussion: Discussion) => (
             <div key={discussion.id} className={styles.card}>
               <a href={discussion.url} target="_blank" rel="noreferrer">
                 <h3>{discussion.title}</h3>
