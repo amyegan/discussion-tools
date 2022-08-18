@@ -6,8 +6,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  //let query = `repo:vercel/community updated:${dateString} sort:updated`;
-  let query = `repo:vercel/community label:shipped sort:updated`;
+  const params = req.query;
+  let query = `repo:vercel/community updated:${params.startDate}..${params.endDate} sort:updated`;
   const { data } = await client.query({
     query: gql`
       query Discussions($query: String!) {
