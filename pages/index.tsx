@@ -9,6 +9,25 @@ type HomeProps = {
   labels: Label[];
 };
 
+function getDates() {
+  let today = new Date();
+  const dayOfWeek = today.getDay();
+  const difference = today.getDate() - dayOfWeek;
+  let sunday = new Date(today);
+  sunday.setDate(difference);
+  let saturday = new Date(sunday);
+  saturday.setDate(sunday.getDate() + 6);
+  const dateString = today.toISOString().split("T")[0];
+  const startDate = sunday.toISOString().split("T")[0];
+  const endDate = today.toISOString().split("T")[0];
+
+  return {
+    startDate,
+    endDate,
+  };
+}
+const dates = getDates();
+
 const Home: NextPage<HomeProps> = () => {
   const [selectedLabel, setSelectedLabel] = useState<Label>();
   const [labels, setLabels] = useState<Label[]>([]);
@@ -17,33 +36,16 @@ const Home: NextPage<HomeProps> = () => {
     []
   );
   const [isLoading, setLoading] = useState<Boolean>(false);
+  const [startDate, setStartDate] = useState<string>(dates.startDate);
+  const [endDate, setEndDate] = useState<string>(dates.endDate);
 
   useEffect(() => {
     setLoading(true);
 
-    function getDates() {
-      let today = new Date();
-      const dayOfWeek = today.getDay();
-      const difference = today.getDate() - dayOfWeek;
-      let sunday = new Date(today);
-      sunday.setDate(difference);
-      let saturday = new Date(sunday);
-      saturday.setDate(sunday.getDate() + 6);
-      const dateString = today.toISOString().split("T")[0];
-      const startDate = sunday.toISOString().split("T")[0];
-      const endDate = today.toISOString().split("T")[0];
-
-      return {
-        startDate,
-        endDate,
-      };
-    }
-    const dates = getDates();
-
     const fetchData = async () => {
       let responses = await Promise.allSettled([
         fetch(
-          `http://localhost:3000/api/discussions?startDate=${dates.startDate}&endDate=${dates.endDate}`
+          `http://localhost:3000/api/discussions?startDate=${startDate}&endDate=${endDate}`
         ),
         fetch(`http://localhost:3000/api/labels`),
       ]);
@@ -101,40 +103,77 @@ const Home: NextPage<HomeProps> = () => {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
+        <h1 className={styles.title} style={{ marginBottom: "0.5em" }}>
+          Welcome!
         </h1>
 
-        <p>Discussions count is {discussions.length}</p>
+        <div>Total discussions: {discussions.length}</div>
+        <div style={{ paddingBottom: "2em" }}>
+          Marked &quot;answered&quot; this week:{" "}
+          {
+            discussions.filter((d) => {
+              if (d.answerChosenAt) {
+                const answerDate = new Date(d.answerChosenAt);
+                return (
+                  answerDate >= new Date(startDate) &&
+                  answerDate <= new Date(endDate)
+                );
+              }
+            }).length
+          }
+        </div>
 
         <form
+          style={{ marginBottom: "2em" }}
           onSubmit={(e) => {
             handleSubmit(e);
           }}
         >
-          <label htmlFor="githubLabel">Label filter</label>
-          <select
-            name="pets"
-            id="githubLabel"
-            onChange={(e) => {
-              handleLabelSelectionChange(e);
-            }}
-          >
-            <option value="">--Please choose an option--</option>
-            {labels &&
-              labels.map((label) => (
-                <option value={label.name} key={label.id}>
-                  {label.name}
-                </option>
-              ))}
-          </select>
+          <div>
+            <label htmlFor="githubLabel">Label filter </label>
+            <select
+              name="pets"
+              id="githubLabel"
+              onChange={(e) => {
+                handleLabelSelectionChange(e);
+              }}
+            >
+              <option value="">--Please choose an option--</option>
+              {labels &&
+                labels.map((label) => (
+                  <option value={label.name} key={label.id}>
+                    {label.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          {/* <div>
+            <label>
+              Start date ({startDate})
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                }}
+              ></input>
+            </label>
+          </div>
+
+          <div>
+            <label>
+              End date ({endDate})
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                }}
+              ></input>
+            </label>
+          </div> */}
         </form>
-
-        <p className={styles.description}>
-          Get started by editing{" "}
-          <code className={styles.code}>pages/index.tsx</code>
-        </p>
-
         <div className={styles.grid}>
           {displayDiscussions.map((discussion) => (
             <div key={discussion.id} className={styles.card}>
@@ -144,6 +183,7 @@ const Home: NextPage<HomeProps> = () => {
                   {discussion.number} - {discussion.title}
                 </p>
                 <p>{`Updated: ${discussion.updatedAt}`}</p>
+                <p>{`Answered: ${Boolean(discussion.answerChosenAt)}`}</p>
                 <div>
                   <ul>
                     {discussion?.labels?.length > 0 &&
@@ -179,7 +219,9 @@ type Discussion = {
   id: string;
   number: string;
   url: string;
+  createdAt: Date;
   updatedAt: Date;
+  answerChosenAt?: Date;
   labels: Array<Label>;
   category: {
     id: string;

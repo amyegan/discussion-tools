@@ -11,18 +11,16 @@ export default async function handler(
   const { data } = await client.query({
     query: gql`
       query Discussions($query: String!) {
-        discussions: search(query: $query, type: DISCUSSION, first: 20) {
+        discussions: search(query: $query, type: DISCUSSION, first: 100) {
           nodes {
             ... on Discussion {
               id
               number
               url
               title
+              createdAt
               updatedAt
-              author {
-                login
-                url
-              }
+              answerChosenAt
               category {
                 id
                 name
@@ -45,7 +43,11 @@ export default async function handler(
 
   const discussions = data.discussions.nodes.map((node: QueryData) => {
     const dateUpdated = new Date(node.updatedAt);
+    const dateCreated = new Date(node.createdAt);
     const updatedAt = dateUpdated.toLocaleDateString(undefined, {
+      dateStyle: "long",
+    });
+    const createdAt = dateCreated.toLocaleDateString(undefined, {
       dateStyle: "long",
     });
     return {
@@ -53,7 +55,9 @@ export default async function handler(
       id: node.id,
       number: node.number,
       url: node.url,
+      createdAt,
       updatedAt,
+      answerChosenAt: node.answerChosenAt,
       labels: node.labels.nodes,
       category: {
         id: node.category.id,
@@ -70,7 +74,9 @@ type QueryData = {
   id: string;
   number: string;
   url: string;
+  createdAt: Date;
   updatedAt: Date;
+  answerChosenAt?: Date;
   labels: {
     nodes: Array<{ id: string; name: string; description: string }>;
   };
