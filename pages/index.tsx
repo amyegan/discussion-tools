@@ -31,6 +31,7 @@ const dates = getDates();
 const Home: NextPage<HomeProps> = () => {
   const [selectedLabel, setSelectedLabel] = useState<Label>();
   const [labels, setLabels] = useState<Label[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [displayDiscussions, setDisplayDiscussions] = useState<Discussion[]>(
     []
@@ -56,7 +57,7 @@ const Home: NextPage<HomeProps> = () => {
               responses[0] as PromiseFulfilledResult<Response>
             ).value.json()
           : [];
-      let labels =
+      let attr =
         responses[1].status === "fulfilled"
           ? await (
               responses[1] as PromiseFulfilledResult<Response>
@@ -65,10 +66,11 @@ const Home: NextPage<HomeProps> = () => {
 
       setDiscussions(discussions);
       setDisplayDiscussions(discussions);
-      setLabels(labels);
+      setLabels(attr?.labels);
+      setCategories(attr?.categories);
       setLoading(false);
 
-      calculateDiscussionCounts(discussions, labels);
+      calculateDiscussionCounts(discussions, attr?.labels);
     };
 
     fetchData().catch(console.error);
@@ -207,7 +209,7 @@ const Home: NextPage<HomeProps> = () => {
           <div>
             <label htmlFor="githubLabel">Label filter </label>
             <select
-              name="pets"
+              name="label"
               id="githubLabel"
               onChange={(e) => {
                 handleLabelSelectionChange(e);
@@ -218,6 +220,19 @@ const Home: NextPage<HomeProps> = () => {
                 labels.map((label) => (
                   <option value={label.name} key={label.id}>
                     {label.name}
+                  </option>
+                ))}
+            </select>
+            <br />
+            <br />
+
+            <label htmlFor="githubCategory">Category filter </label>
+            <select name="category" id="githubCategory">
+              <option value="">--Please choose an option--</option>
+              {categories &&
+                categories.map((category) => (
+                  <option value={category.name} key={category.id}>
+                    {category.name}
                   </option>
                 ))}
             </select>
@@ -311,6 +326,7 @@ type Discussion = {
 };
 
 type Label = { id: string; name: string; description: string };
+type Category = { id: string; name: string; description: string; slug: string };
 
 type Comment = {
   author: {
