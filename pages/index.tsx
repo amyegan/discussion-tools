@@ -38,6 +38,7 @@ const Home: NextPage<HomeProps> = () => {
   const [isLoading, setLoading] = useState<Boolean>(false);
   const [startDate, setStartDate] = useState<string>(dates.startDate);
   const [endDate, setEndDate] = useState<string>(dates.endDate);
+  const [discussionCounts, setDiscussionCounts] = useState<Counts>();
 
   useEffect(() => {
     setLoading(true);
@@ -66,10 +67,43 @@ const Home: NextPage<HomeProps> = () => {
       setDisplayDiscussions(discussions);
       setLabels(labels);
       setLoading(false);
+
+      calculateDiscussionCounts(discussions, labels);
     };
 
     fetchData().catch(console.error);
-  }, []);
+  }, [startDate, endDate]);
+
+  let calculateDiscussionCounts = (
+    allDiscussions: Discussion[],
+    allLabels: Label[]
+  ) => {
+    let labels = allLabels.map((label) => {
+      let matches = allDiscussions.filter((discussion) =>
+        discussion.labels.some((l) => l.name === label.name)
+      );
+      return { name: label.name, id: label.id, count: matches.length };
+    });
+
+    let categories: { id: string; name: string; count: number }[] = [];
+    allDiscussions.forEach((discussion) => {
+      let matchingCategory =
+        categories &&
+        categories.find((category) => {
+          return category.id === discussion.category.id;
+        });
+      if (matchingCategory) {
+        matchingCategory.count++;
+      } else {
+        categories.push({ ...discussion.category, count: 1 });
+      }
+    });
+
+    setDiscussionCounts({
+      labels,
+      categories,
+    });
+  };
 
   let handleLabelSelectionChange = (event: any) => {
     let newLabel = event.target.value;
@@ -108,19 +142,47 @@ const Home: NextPage<HomeProps> = () => {
         </h1>
 
         <div>Total discussions: {discussions.length}</div>
+        <br />
+        <br />
         <div style={{ paddingBottom: "2em" }}>
-          Marked &quot;answered&quot; this week:{" "}
-          {
-            discussions.filter((d) => {
-              if (d.answerChosenAt) {
-                const answerDate = new Date(d.answerChosenAt);
-                return (
-                  answerDate >= new Date(startDate) &&
-                  answerDate <= new Date(endDate)
-                );
-              }
-            }).length
-          }
+          <>
+            Marked &quot;answered&quot; this week:{" "}
+            {
+              discussions.filter((d) => {
+                if (d.answerChosenAt) {
+                  const answerDate = new Date(d.answerChosenAt);
+                  return (
+                    answerDate >= new Date(startDate) &&
+                    answerDate <= new Date(endDate)
+                  );
+                }
+              }).length
+            }
+            <br />
+            <br />
+            Labels used this week:{" "}
+            <ul>
+              {discussionCounts &&
+                discussionCounts.labels.map((l) => {
+                  return (
+                    <li key={l.id}>
+                      {l.name}: {l.count}
+                    </li>
+                  );
+                })}
+            </ul>
+            Categories used this week:{" "}
+            <ul>
+              {discussionCounts &&
+                discussionCounts.categories.map((c) => {
+                  return (
+                    <li key={c.id}>
+                      {c.name}: {c.count}
+                    </li>
+                  );
+                })}
+            </ul>
+          </>
         </div>
 
         <form
@@ -230,5 +292,10 @@ type Discussion = {
 };
 
 type Label = { id: string; name: string; description: string };
+
+type Counts = {
+  labels: { name: string; id: string; count: number }[];
+  categories: { id: string; name: string; count: number }[];
+};
 
 export default Home;
