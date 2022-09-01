@@ -105,6 +105,17 @@ const Home: NextPage<HomeProps> = () => {
     });
   };
 
+  let getFirstResponseCount = () => {
+    // quickly, but not-necessarily-reliably, count first comments that came from me
+    return discussions.filter((d) => {
+      return (
+        d?.comments.length &&
+        d.comments[0].author.login === "amyegan" &&
+        d.comments[0].author.login !== d.author.login
+      );
+    }).length;
+  };
+
   let handleLabelSelectionChange = (event: any) => {
     let newLabel = event.target.value;
     setSelectedLabel(newLabel);
@@ -141,9 +152,10 @@ const Home: NextPage<HomeProps> = () => {
           Welcome!
         </h1>
 
-        <div>Total discussions: {discussions.length}</div>
-        <br />
-        <br />
+        <p>
+          {discussions.length} discussions from {startDate} through {endDate}
+        </p>
+
         <div style={{ paddingBottom: "2em" }}>
           <>
             Marked &quot;answered&quot; this week:{" "}
@@ -182,6 +194,7 @@ const Home: NextPage<HomeProps> = () => {
                   );
                 })}
             </ul>
+            <p>Times first comment came from me: {getFirstResponseCount()}</p>
           </>
         </div>
 
@@ -246,6 +259,7 @@ const Home: NextPage<HomeProps> = () => {
                 </p>
                 <p>{`Updated: ${discussion.updatedAt}`}</p>
                 <p>{`Answered: ${Boolean(discussion.answerChosenAt)}`}</p>
+                <p>{`Comment count: ${discussion.comments.length}`}</p>
                 <div>
                   <ul>
                     {discussion?.labels?.length > 0 &&
@@ -279,6 +293,10 @@ const Home: NextPage<HomeProps> = () => {
 type Discussion = {
   title: string;
   id: string;
+  author: {
+    login: string;
+    url: string;
+  };
   number: string;
   url: string;
   createdAt: Date;
@@ -289,9 +307,21 @@ type Discussion = {
     id: string;
     name: string;
   };
+  comments: Comment[];
 };
 
 type Label = { id: string; name: string; description: string };
+
+type Comment = {
+  author: {
+    login: string;
+    url: string;
+  };
+  createdAt: Date;
+  id: string;
+  publishedAt: Date;
+  url: string;
+};
 
 type Counts = {
   labels: { name: string; id: string; count: number }[];

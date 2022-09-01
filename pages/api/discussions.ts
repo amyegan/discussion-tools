@@ -20,6 +20,10 @@ export default async function handler(
               title
               createdAt
               updatedAt
+              author {
+                login
+                url
+              }
               answerChosenAt
               category {
                 id
@@ -31,6 +35,19 @@ export default async function handler(
                   id
                   name
                   description
+                }
+              }
+              comments(first: 10) {
+                nodes {
+                  author {
+                    login
+                    url
+                  }
+                  createdAt
+                  id
+                  isAnswer
+                  publishedAt
+                  url
                 }
               }
             }
@@ -53,6 +70,7 @@ export default async function handler(
     return {
       title: node.title,
       id: node.id,
+      author: node.author,
       number: node.number,
       url: node.url,
       createdAt,
@@ -63,6 +81,7 @@ export default async function handler(
         id: node.category.id,
         name: node.category.name,
       },
+      comments: node.comments.nodes,
     };
   });
 
@@ -72,6 +91,10 @@ export default async function handler(
 type QueryData = {
   title: string;
   id: string;
+  author: {
+    login: string;
+    url: string;
+  };
   number: string;
   url: string;
   createdAt: Date;
@@ -83,5 +106,14 @@ type QueryData = {
   category: {
     id: string;
     name: string;
+  };
+  comments: {
+    nodes: Array<{
+      id: string;
+      isAnswer: boolean;
+      publishedAt: Date;
+      url: string;
+      author: { login: string; url: string };
+    }>;
   };
 };
