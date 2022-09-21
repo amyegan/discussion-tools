@@ -21,15 +21,21 @@ function getDates() {
   const startDate = sunday.toISOString().split("T")[0];
   const endDate = today.toISOString().split("T")[0];
 
+  const lastWeekStartDate = new Date(sunday);
+  lastWeekStartDate.setDate(sunday.getDate() - 7);
+  const lastWeekEndDate = new Date(sunday);
+  lastWeekEndDate.setDate(sunday.getDate() - 1);
+
   return {
     startDate,
     endDate,
+    lastWeekStartDate,
+    lastWeekEndDate,
   };
 }
 const dates = getDates();
 
 const Home: NextPage<HomeProps> = () => {
-  const [selectedLabel, setSelectedLabel] = useState<Label>();
   const [labels, setLabels] = useState<Label[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
@@ -44,67 +50,32 @@ const Home: NextPage<HomeProps> = () => {
   useEffect(() => {
     setLoading(true);
 
-    const fetchData = async () => {
-      let responses = await Promise.allSettled([
-        fetch(
-          `http://localhost:3000/api/discussions?startDate=${startDate}&endDate=${endDate}`
-        ),
-        fetch(`http://localhost:3000/api/labels`),
-      ]);
-      let discussions =
-        responses[0].status === "fulfilled"
-          ? await (
-              responses[0] as PromiseFulfilledResult<Response>
-            ).value.json()
-          : [];
-      let attr =
-        responses[1].status === "fulfilled"
-          ? await (
-              responses[1] as PromiseFulfilledResult<Response>
-            ).value.json()
-          : [];
-
-      setDiscussions(discussions);
-      setDisplayDiscussions(discussions);
-      setLabels(attr?.labels);
-      setCategories(attr?.categories);
-      setLoading(false);
-
-      calculateDiscussionCounts(discussions, attr?.labels);
-    };
-
     fetchData().catch(console.error);
-  }, [startDate, endDate]);
+  }, []);
 
-  let calculateDiscussionCounts = (
-    allDiscussions: Discussion[],
-    allLabels: Label[]
-  ) => {
-    let labels = allLabels.map((label) => {
-      let matches = allDiscussions.filter((discussion) =>
-        discussion.labels.some((l) => l.name === label.name)
-      );
-      return { name: label.name, id: label.id, count: matches.length };
-    });
+  const fetchData = async (start = startDate, end = endDate) => {
+    let responses = await Promise.allSettled([
+      fetch(
+        `http://localhost:3000/api/discussions?startDate=${start}&endDate=${end}`
+      ),
+      fetch(`http://localhost:3000/api/labels`),
+    ]);
+    let discussions =
+      responses[0].status === "fulfilled"
+        ? await (responses[0] as PromiseFulfilledResult<Response>).value.json()
+        : [];
+    let attr =
+      responses[1].status === "fulfilled"
+        ? await (responses[1] as PromiseFulfilledResult<Response>).value.json()
+        : [];
 
-    let categories: { id: string; name: string; count: number }[] = [];
-    allDiscussions.forEach((discussion) => {
-      let matchingCategory =
-        categories &&
-        categories.find((category) => {
-          return category.id === discussion.category.id;
-        });
-      if (matchingCategory) {
-        matchingCategory.count++;
-      } else {
-        categories.push({ ...discussion.category, count: 1 });
-      }
-    });
+    setDiscussions(discussions);
+    setDisplayDiscussions(discussions);
+    setLabels(attr?.labels);
+    setCategories(attr?.categories);
+    setLoading(false);
 
-    setDiscussionCounts({
-      labels,
-      categories,
-    });
+    //calculateDiscussionCounts(discussions, attr?.labels);
   };
 
   let getFirstResponseCount = () => {
@@ -118,25 +89,34 @@ const Home: NextPage<HomeProps> = () => {
     }).length;
   };
 
-  let handleLabelSelectionChange = (event: any) => {
-    let newLabel = event.target.value;
-    setSelectedLabel(newLabel);
-
-    if (newLabel) {
-      let filteredDiscussions = discussions.filter((discussion) => {
-        return discussion.labels.some((l) => l.name === newLabel);
-      });
-      setDisplayDiscussions(filteredDiscussions);
-      return;
-    } else {
-      setDisplayDiscussions(discussions);
-    }
-  };
-
   let handleSubmit = (event: any) => {
     event.preventDefault();
 
+    let allDiscussions = discussions;
     let selectedLabel = event.target.githubLabel.value;
+    let selectedCategory = event.target.githubCategory.value;
+    let start = event.target.githubStartDate.value;
+    let end = event.target.githubEndDate.value;
+
+    if (start != startDate || end != endDate) {
+      setStartDate(start);
+      setEndDate(end);
+      fetchData(start, end);
+    }
+
+    if (selectedLabel) {
+      allDiscussions = discussions.filter((discussion) => {
+        return discussion.labels.some((l) => l.name === selectedLabel);
+      });
+    }
+
+    if (selectedCategory) {
+      allDiscussions = discussions.filter((discussion) => {
+        return discussion.category.name === selectedCategory;
+      });
+    }
+
+    setDisplayDiscussions(discussions);
   };
 
   if (isLoading) return <p>Loading...</p>;
@@ -172,31 +152,6 @@ const Home: NextPage<HomeProps> = () => {
                 }
               }).length
             }
-            <br />
-            <br />
-            Labels used this week:{" "}
-            <ul>
-              {discussionCounts &&
-                discussionCounts.labels.map((l) => {
-                  return (
-                    <li key={l.id}>
-                      {l.name}: {l.count}
-                    </li>
-                  );
-                })}
-            </ul>
-            Categories used this week:{" "}
-            <ul>
-              {discussionCounts &&
-                discussionCounts.categories.map((c) => {
-                  return (
-                    <li key={c.id}>
-                      {c.name}: {c.count}
-                    </li>
-                  );
-                })}
-            </ul>
-            <p>Times first comment came from me: {getFirstResponseCount()}</p>
           </>
         </div>
 
@@ -206,15 +161,9 @@ const Home: NextPage<HomeProps> = () => {
             handleSubmit(e);
           }}
         >
-          <div>
+          <div style={{ marginBottom: "0.5em" }}>
             <label htmlFor="githubLabel">Label filter </label>
-            <select
-              name="label"
-              id="githubLabel"
-              onChange={(e) => {
-                handleLabelSelectionChange(e);
-              }}
-            >
+            <select name="label" id="githubLabel">
               <option value="">--Please choose an option--</option>
               {labels &&
                 labels.map((label) => (
@@ -223,9 +172,9 @@ const Home: NextPage<HomeProps> = () => {
                   </option>
                 ))}
             </select>
-            <br />
-            <br />
+          </div>
 
+          <div style={{ marginBottom: "0.5em" }}>
             <label htmlFor="githubCategory">Category filter </label>
             <select name="category" id="githubCategory">
               <option value="">--Please choose an option--</option>
@@ -238,32 +187,33 @@ const Home: NextPage<HomeProps> = () => {
             </select>
           </div>
 
-          {/* <div>
+          <div style={{ marginBottom: "0.5em" }}>
             <label>
               Start date ({startDate})
               <input
                 type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                }}
+                defaultValue={startDate}
+                id="githubStartDate"
+                name="start-date"
               ></input>
             </label>
           </div>
 
-          <div>
+          <div style={{ marginBottom: "0.5em" }}>
             <label>
               End date ({endDate})
               <input
                 type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                }}
+                defaultValue={endDate}
+                id="githubEndDate"
+                name="end-date"
               ></input>
             </label>
-          </div> */}
+          </div>
+
+          <button type="submit">Search</button>
         </form>
+
         <div className={styles.grid}>
           {displayDiscussions.map((discussion) => (
             <div key={discussion.id} className={styles.card}>
