@@ -17,7 +17,6 @@ function getDates() {
   sunday.setDate(difference);
   let saturday = new Date(sunday);
   saturday.setDate(sunday.getDate() + 6);
-  const dateString = today.toISOString().split("T")[0];
   const startDate = sunday.toISOString().split("T")[0];
   const endDate = today.toISOString().split("T")[0];
 
@@ -37,7 +36,6 @@ const dates = getDates();
 
 const Home: NextPage<HomeProps> = () => {
   const [labels, setLabels] = useState<Label[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [displayDiscussions, setDisplayDiscussions] = useState<Discussion[]>(
     []
@@ -45,7 +43,6 @@ const Home: NextPage<HomeProps> = () => {
   const [isLoading, setLoading] = useState<Boolean>(false);
   const [startDate, setStartDate] = useState<string>(dates.startDate);
   const [endDate, setEndDate] = useState<string>(dates.endDate);
-  const [discussionCounts, setDiscussionCounts] = useState<Counts>();
 
   useEffect(() => {
     setLoading(true);
@@ -72,29 +69,14 @@ const Home: NextPage<HomeProps> = () => {
     setDiscussions(discussions);
     setDisplayDiscussions(discussions);
     setLabels(attr?.labels);
-    setCategories(attr?.categories);
     setLoading(false);
-
-    //calculateDiscussionCounts(discussions, attr?.labels);
-  };
-
-  let getFirstResponseCount = () => {
-    // quickly, but not-necessarily-reliably, count first comments that came from me
-    return discussions.filter((d) => {
-      return (
-        d?.comments.length &&
-        d.comments[0].author.login === "amyegan" &&
-        d.comments[0].author.login !== d.author.login
-      );
-    }).length;
   };
 
   let handleSubmit = (event: any) => {
     event.preventDefault();
 
-    let allDiscussions = discussions;
     let selectedLabel = event.target.githubLabel.value;
-    let selectedCategory = event.target.githubCategory.value;
+    console.log("selectedLabel", selectedLabel);
     let start = event.target.githubStartDate.value;
     let end = event.target.githubEndDate.value;
 
@@ -105,15 +87,12 @@ const Home: NextPage<HomeProps> = () => {
     }
 
     if (selectedLabel) {
-      allDiscussions = discussions.filter((discussion) => {
+      console.log("filtering by label", selectedLabel);
+      let filteredDiscussions = discussions.filter((discussion) => {
         return discussion.labels.some((l) => l.name === selectedLabel);
       });
-    }
-
-    if (selectedCategory) {
-      allDiscussions = discussions.filter((discussion) => {
-        return discussion.category.name === selectedCategory;
-      });
+      setDisplayDiscussions(filteredDiscussions);
+      return;
     }
 
     setDisplayDiscussions(discussions);
@@ -130,30 +109,10 @@ const Home: NextPage<HomeProps> = () => {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title} style={{ marginBottom: "0.5em" }}>
-          Welcome!
-        </h1>
-
         <p>
-          {discussions.length} discussions from {startDate} through {endDate}
+          {displayDiscussions.length} discussions from {startDate} through{" "}
+          {endDate}
         </p>
-
-        <div style={{ paddingBottom: "2em" }}>
-          <>
-            Marked &quot;answered&quot; this week:{" "}
-            {
-              discussions.filter((d) => {
-                if (d.answerChosenAt) {
-                  const answerDate = new Date(d.answerChosenAt);
-                  return (
-                    answerDate >= new Date(startDate) &&
-                    answerDate <= new Date(endDate)
-                  );
-                }
-              }).length
-            }
-          </>
-        </div>
 
         <form
           style={{ marginBottom: "2em" }}
@@ -169,19 +128,6 @@ const Home: NextPage<HomeProps> = () => {
                 labels.map((label) => (
                   <option value={label.name} key={label.id}>
                     {label.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          <div style={{ marginBottom: "0.5em" }}>
-            <label htmlFor="githubCategory">Category filter </label>
-            <select name="category" id="githubCategory">
-              <option value="">--Please choose an option--</option>
-              {categories &&
-                categories.map((category) => (
-                  <option value={category.name} key={category.id}>
-                    {category.name}
                   </option>
                 ))}
             </select>
@@ -276,7 +222,6 @@ type Discussion = {
 };
 
 type Label = { id: string; name: string; description: string };
-type Category = { id: string; name: string; description: string; slug: string };
 
 type Comment = {
   author: {
@@ -287,11 +232,6 @@ type Comment = {
   id: string;
   publishedAt: Date;
   url: string;
-};
-
-type Counts = {
-  labels: { name: string; id: string; count: number }[];
-  categories: { id: string; name: string; count: number }[];
 };
 
 export default Home;

@@ -18,20 +18,11 @@ export default async function handler(
               description
             }
           }
-          discussionCategories(first: 10) {
-            nodes {
-              id
-              name
-              description
-              slug
-            }
-          }
         }
       }
     `,
   });
 
   const labels = data?.repository?.labels?.nodes;
-  const categories = data?.repository.discussionCategories?.nodes;
-  res.status(200).json({ labels, categories });
+  res.status(200).json({ labels });
 }
