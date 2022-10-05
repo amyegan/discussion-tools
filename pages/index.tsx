@@ -110,9 +110,28 @@ const Home: NextPage<HomeProps> = () => {
 
       <main className={styles.main}>
         <p>
-          {displayDiscussions.length} discussions from {startDate} through{" "}
-          {endDate}
+          {displayDiscussions.length} discussions were updated between{" "}
+          {startDate} and {endDate}
         </p>
+
+        <div style={{ marginBottom: "2em" }}>
+          <dl>
+            <dt>Total discussions this week</dt>
+            <dd>{displayDiscussions.length}</dd>
+            <dt>New discussions created this week</dt>
+            <dd>
+              <em>todo: filter by discussion created date</em>
+            </dd>
+            <dt>First-timers</dt>
+            <dd>
+              <em>todo: count all posts by this user</em>
+            </dd>
+            <dt>Total contributors</dt>
+            <dd>
+              <em>todo: count unique users in discussions + comments</em>
+            </dd>
+          </dl>
+        </div>
 
         <form
           style={{ marginBottom: "2em" }}
@@ -120,19 +139,6 @@ const Home: NextPage<HomeProps> = () => {
             handleSubmit(e);
           }}
         >
-          <div style={{ marginBottom: "0.5em" }}>
-            <label htmlFor="githubLabel">Label filter </label>
-            <select name="label" id="githubLabel">
-              <option value="">--Please choose an option--</option>
-              {labels &&
-                labels.map((label) => (
-                  <option value={label.name} key={label.id}>
-                    {label.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
           <div style={{ marginBottom: "0.5em" }}>
             <label>
               Start date ({startDate})
@@ -160,7 +166,7 @@ const Home: NextPage<HomeProps> = () => {
           <button type="submit">Search</button>
         </form>
 
-        <div className={styles.grid}>
+        {/* <div className={styles.grid}>
           {displayDiscussions.map((discussion) => (
             <div key={discussion.id} className={styles.card}>
               <a href={discussion.url} target="_blank" rel="noreferrer">
@@ -182,7 +188,7 @@ const Home: NextPage<HomeProps> = () => {
               </a>
             </div>
           ))}
-        </div>
+        </div> */}
       </main>
 
       <footer className={styles.footer}>
