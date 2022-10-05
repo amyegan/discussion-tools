@@ -50,6 +50,9 @@ export default async function handler(
                   url
                 }
               }
+              repository {
+                id
+              }
             }
           }
         }
