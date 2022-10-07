@@ -6,14 +6,20 @@ import { useState, useEffect } from "react";
 
 function getDates() {
   let today = new Date();
+  const offset = today.getTimezoneOffset();
+  today = new Date(today.getTime() - offset * 60 * 1000);
+
   const dayOfWeek = today.getDay();
+
   const difference = today.getDate() - dayOfWeek;
   let sunday = new Date(today);
   sunday.setDate(difference);
+
   let saturday = new Date(sunday);
   saturday.setDate(sunday.getDate() + 6);
+
   const startDate = sunday.toISOString().split("T")[0];
-  const endDate = today.toISOString().split("T")[0];
+  const endDate = saturday.toISOString().split("T")[0];
 
   const lastWeekStartDate = new Date(sunday);
   lastWeekStartDate.setDate(sunday.getDate() - 7);
@@ -46,6 +52,7 @@ const Home: NextPage = () => {
   }, []);
 
   const fetchData = async (start = startDate, end = endDate) => {
+    console.log("using start and end dates", { startDate, endDate });
     let responses = await Promise.allSettled([
       fetch(
         `http://localhost:3000/api/discussions?startDate=${start}&endDate=${end}`
