@@ -4,11 +4,6 @@ import Image from "next/image";
 import styles from "../styles/Home.module.css";
 import { useState, useEffect } from "react";
 
-type HomeProps = {
-  discussions: Discussion[];
-  labels: Label[];
-};
-
 function getDates() {
   let today = new Date();
   const dayOfWeek = today.getDay();
@@ -34,12 +29,12 @@ function getDates() {
 }
 const dates = getDates();
 
-const Home: NextPage<HomeProps> = () => {
-  const [labels, setLabels] = useState<Label[]>([]);
+const Home: NextPage = () => {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
-  const [displayDiscussions, setDisplayDiscussions] = useState<Discussion[]>(
-    []
-  );
+  const [discussionCounts, setDiscussionCounts] = useState<{
+    total: number;
+    new: number;
+  }>();
   const [isLoading, setLoading] = useState<Boolean>(false);
   const [startDate, setStartDate] = useState<string>(dates.startDate);
   const [endDate, setEndDate] = useState<string>(dates.endDate);
@@ -57,7 +52,7 @@ const Home: NextPage<HomeProps> = () => {
       ),
       fetch(`http://localhost:3000/api/labels`),
     ]);
-    let discussions =
+    let discussionData =
       responses[0].status === "fulfilled"
         ? await (responses[0] as PromiseFulfilledResult<Response>).value.json()
         : [];
@@ -66,17 +61,22 @@ const Home: NextPage<HomeProps> = () => {
         ? await (responses[1] as PromiseFulfilledResult<Response>).value.json()
         : [];
 
-    setDiscussions(discussions);
-    setDisplayDiscussions(discussions);
-    setLabels(attr?.labels);
+    console.log({
+      total: discussionData.total,
+      new: discussionData.new,
+    });
+
+    setDiscussionCounts({
+      total: discussionData.total,
+      new: discussionData.new,
+    });
+    setDiscussions(discussionData.discussions);
     setLoading(false);
   };
 
   let handleSubmit = (event: any) => {
     event.preventDefault();
 
-    let selectedLabel = event.target.githubLabel.value;
-    console.log("selectedLabel", selectedLabel);
     let start = event.target.githubStartDate.value;
     let end = event.target.githubEndDate.value;
 
@@ -86,16 +86,7 @@ const Home: NextPage<HomeProps> = () => {
       fetchData(start, end);
     }
 
-    if (selectedLabel) {
-      console.log("filtering by label", selectedLabel);
-      let filteredDiscussions = discussions.filter((discussion) => {
-        return discussion.labels.some((l) => l.name === selectedLabel);
-      });
-      setDisplayDiscussions(filteredDiscussions);
-      return;
-    }
-
-    setDisplayDiscussions(discussions);
+    setDiscussions(discussions);
   };
 
   if (isLoading) return <p>Loading...</p>;
@@ -110,18 +101,16 @@ const Home: NextPage<HomeProps> = () => {
 
       <main className={styles.main}>
         <p>
-          {displayDiscussions.length} discussions were updated between{" "}
-          {startDate} and {endDate}
+          {discussionCounts?.total} discussions were updated between {startDate}{" "}
+          and {endDate}
         </p>
 
         <div style={{ marginBottom: "2em" }}>
           <dl>
             <dt>Total discussions this week</dt>
-            <dd>{displayDiscussions.length}</dd>
+            <dd>{discussionCounts?.total}</dd>
             <dt>New discussions created this week</dt>
-            <dd>
-              <em>todo: filter by discussion created date</em>
-            </dd>
+            <dd>{discussionCounts?.new}</dd>
             <dt>First-timers</dt>
             <dd>
               <em>todo: count all posts by this user</em>
@@ -208,6 +197,7 @@ const Home: NextPage<HomeProps> = () => {
 };
 
 type Discussion = {
+  discussionCount: number;
   title: string;
   id: string;
   author: {
