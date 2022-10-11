@@ -36,10 +36,12 @@ function getDates() {
 const dates = getDates();
 
 const Home: NextPage = () => {
-  const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [discussionCounts, setDiscussionCounts] = useState<{
     total: number;
     new: number;
+    totalCommentsAndReplies: number;
+    postAuthors: Array<string>;
+    commentAuthors: Array<string>;
   }>();
   const [isLoading, setLoading] = useState<Boolean>(false);
   const [startDate, setStartDate] = useState<string>(dates.startDate);
@@ -53,33 +55,18 @@ const Home: NextPage = () => {
 
   const fetchData = async (start = startDate, end = endDate) => {
     console.log("using start and end dates", { startDate, endDate });
-    let responses = await Promise.allSettled([
-      fetch(
-        `http://localhost:3000/api/discussions?startDate=${start}&endDate=${end}`
-      ),
-      fetch(`http://localhost:3000/api/labels`),
-    ]);
-    let discussionData =
-      responses[0].status === "fulfilled"
-        ? await (responses[0] as PromiseFulfilledResult<Response>).value.json()
-        : [];
-    let attr =
-      responses[1].status === "fulfilled"
-        ? await (responses[1] as PromiseFulfilledResult<Response>).value.json()
-        : [];
+    const res = await fetch(
+      `http://localhost:3000/api/discussions?startDate=${start}&endDate=${end}`
+    );
+    const discussionC = await res?.json() || [];
 
-    console.log({
-      total: discussionData.total,
-      new: discussionData.new,
-    });
+    console.log(discussionC);
 
-    setDiscussionCounts({
-      total: discussionData.total,
-      new: discussionData.new,
-    });
-    setDiscussions(discussionData.discussions);
+    setDiscussionCounts(discussionC);
+
     setLoading(false);
   };
+  
 
   let handleSubmit = (event: any) => {
     event.preventDefault();
@@ -92,8 +79,6 @@ const Home: NextPage = () => {
       setEndDate(end);
       fetchData(start, end);
     }
-
-    setDiscussions(discussions);
   };
 
   if (isLoading) return <p>Loading...</p>;
@@ -120,11 +105,13 @@ const Home: NextPage = () => {
             <dd>{discussionCounts?.new}</dd>
             <dt>First-timers</dt>
             <dd>
-              <em>todo: count all posts by this user</em>
+              <em>todo: count all posts by individual user, total all where only one</em>
             </dd>
-            <dt>Total contributors</dt>
+            <dt>Comments and replies this week</dt>
+            <dd>{discussionCounts?.totalCommentsAndReplies}</dd>
+            <dt>Total contributors this week</dt>
             <dd>
-              <em>todo: count unique users in discussions + comments</em>
+              {(discussionCounts?.postAuthors?.length || 0) + (discussionCounts?.commentAuthors?.length || 0)}
             </dd>
           </dl>
         </div>
@@ -161,30 +148,6 @@ const Home: NextPage = () => {
 
           <button type="submit">Search</button>
         </form>
-
-        {/* <div className={styles.grid}>
-          {displayDiscussions.map((discussion) => (
-            <div key={discussion.id} className={styles.card}>
-              <a href={discussion.url} target="_blank" rel="noreferrer">
-                <h3>{discussion.title}</h3>
-                <p>
-                  {discussion.number} - {discussion.title}
-                </p>
-                <p>{`Updated: ${discussion.updatedAt}`}</p>
-                <p>{`Answered: ${Boolean(discussion.answerChosenAt)}`}</p>
-                <p>{`Comment count: ${discussion.comments.length}`}</p>
-                <div>
-                  <ul>
-                    {discussion?.labels?.length > 0 &&
-                      discussion.labels.map((label) => (
-                        <li key={label.id}>{label.name}</li>
-                      ))}
-                  </ul>
-                </div>
-              </a>
-            </div>
-          ))}
-        </div> */}
       </main>
 
       <footer className={styles.footer}>
