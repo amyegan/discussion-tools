@@ -82,8 +82,10 @@ const Home: NextPage = () => {
     setStartDate(dates.startDate);
     setEndDate(dates.endDate);
     fetchData(dates.startDate, dates.endDate);
-    document.getElementById("githubStartDate").value = dates.startDate;
-    document.getElementById("githubEndDate").value = dates.endDate;
+    let startDateInput= document.getElementById("githubStartDate") as HTMLInputElement;
+    let endDateInput = document.getElementById("githubEndDate") as HTMLInputElement;
+    startDateInput.value = dates.startDate;
+    endDateInput.value = dates.endDate;
     //event.target.reset();
     //document?.getElementById("githubStartDate")?.reset(); 
   }
