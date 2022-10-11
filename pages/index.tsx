@@ -86,8 +86,6 @@ const Home: NextPage = () => {
     let endDateInput = document.getElementById("githubEndDate") as HTMLInputElement;
     startDateInput.value = dates.startDate;
     endDateInput.value = dates.endDate;
-    //event.target.reset();
-    //document?.getElementById("githubStartDate")?.reset(); 
   }
 
   if (isLoading) return <p>Loading...</p>;
@@ -134,7 +132,7 @@ const Home: NextPage = () => {
         >
           <div style={{ marginBottom: "0.5em" }}>
             <label>
-              Start date ({startDate})
+              Start date
               <input
                 type="date"
                 defaultValue={startDate}
@@ -146,7 +144,7 @@ const Home: NextPage = () => {
 
           <div style={{ marginBottom: "0.5em" }}>
             <label>
-              End date ({endDate})
+              End date
               <input
                 type="date"
                 defaultValue={endDate}
