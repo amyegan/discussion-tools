@@ -48,19 +48,16 @@ const Home: NextPage = () => {
   const [endDate, setEndDate] = useState<string>(dates.endDate);
 
   useEffect(() => {
-    setLoading(true);
 
     fetchData().catch(console.error);
   }, []);
 
   const fetchData = async (start = startDate, end = endDate) => {
-    console.log("using start and end dates", { startDate, endDate });
+    setLoading(true);
     const res = await fetch(
       `http://localhost:3000/api/discussions?startDate=${start}&endDate=${end}`
     );
     const discussionC = await res?.json() || [];
-
-    console.log(discussionC);
 
     setDiscussionCounts(discussionC);
 
@@ -80,6 +77,16 @@ const Home: NextPage = () => {
       fetchData(start, end);
     }
   };
+
+  let handleReset = (event: any) => {
+    setStartDate(dates.startDate);
+    setEndDate(dates.endDate);
+    fetchData(dates.startDate, dates.endDate);
+    document.getElementById("githubStartDate").value = dates.startDate;
+    document.getElementById("githubEndDate").value = dates.endDate;
+    //event.target.reset();
+    //document?.getElementById("githubStartDate")?.reset(); 
+  }
 
   if (isLoading) return <p>Loading...</p>;
 
@@ -117,6 +124,7 @@ const Home: NextPage = () => {
         </div>
 
         <form
+          id="filter-form"
           style={{ marginBottom: "2em" }}
           onSubmit={(e) => {
             handleSubmit(e);
@@ -146,6 +154,7 @@ const Home: NextPage = () => {
             </label>
           </div>
 
+          <button type="button" onClick={(e) => handleReset(e)} style={{marginRight:'0.5em'}}>Reset</button>
           <button type="submit">Search</button>
         </form>
       </main>
@@ -164,40 +173,6 @@ const Home: NextPage = () => {
       </footer>
     </div>
   );
-};
-
-type Discussion = {
-  discussionCount: number;
-  title: string;
-  id: string;
-  author: {
-    login: string;
-    url: string;
-  };
-  number: string;
-  url: string;
-  createdAt: Date;
-  updatedAt: Date;
-  answerChosenAt?: Date;
-  labels: Array<Label>;
-  category: {
-    id: string;
-    name: string;
-  };
-  comments: Comment[];
-};
-
-type Label = { id: string; name: string; description: string };
-
-type Comment = {
-  author: {
-    login: string;
-    url: string;
-  };
-  createdAt: Date;
-  id: string;
-  publishedAt: Date;
-  url: string;
 };
 
 export default Home;

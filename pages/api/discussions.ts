@@ -30,7 +30,6 @@ export default async function handler(
                   login
                   url
                 }
-                answerChosenAt
                 repository {
                   id
                 }
@@ -68,7 +67,6 @@ export default async function handler(
       variables: { query },
     });
 
-    console.log('** START');
     let posters: string[] = [];
     let commenters: string[] = [];
     let totalCommentsAndReplies = 0; // count comments and replies that happened this week
