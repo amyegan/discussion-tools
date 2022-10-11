@@ -55,7 +55,7 @@ const Home: NextPage = () => {
   const fetchData = async (start = startDate, end = endDate) => {
     setLoading(true);
     const res = await fetch(
-      `http://localhost:3000/api/discussions?startDate=${start}&endDate=${end}`
+      `/api/discussions?startDate=${start}&endDate=${end}`
     );
     const discussionC = await res?.json() || [];
 
