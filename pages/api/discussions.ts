@@ -119,7 +119,8 @@ export default async function handler(
       return date > startDate && date < endDate;
     });
 
-    res.status(200).json({
+  res.setHeader('Cache-Control', 'max-age=0, s-maxage=300')
+  res.status(200).json({
       total: data.discussions.discussionCount,
       new: newDiscussions.length,
       totalCommentsAndReplies,
