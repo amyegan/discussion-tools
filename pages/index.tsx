@@ -110,10 +110,6 @@ const Home: NextPage = () => {
             <dd>{discussionCounts?.total}</dd>
             <dt>New discussions created this week</dt>
             <dd>{discussionCounts?.new}</dd>
-            <dt>First-timers</dt>
-            <dd>
-              <em>todo: count all posts by individual user, total all where only one</em>
-            </dd>
             <dt>Comments and replies this week</dt>
             <dd>{discussionCounts?.totalCommentsAndReplies}</dd>
             <dt>Total contributors this week</dt>
