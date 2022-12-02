@@ -1,23 +1,27 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { gql } from "@apollo/client";
 import client from "../../apollo-client";
-import { Url } from "url";
-import { stringify } from "querystring";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const params = req.query;
-  const login = params?.username || "amyegan";
+  const { username } = req.query;
+
+  if (!username) {
+    res.setHeader("Cache-Control", "no-cache");
+    res.status(400).json({message: "Please provide username"});
+    return res;
+  }
+
   const communityRepoId = "R_kgDOGcG7Rw";
   const vercelRepoId = "MDEwOlJlcG9zaXRvcnk2Nzc1MzA3MA==";
   const targetRepos = [communityRepoId, vercelRepoId];
-  // const repositoryId = params?.repoId || "MDEwOlJlcG9zaXRvcnk2Nzc1MzA3MA==";
+
   const { data } = await client.query({
     query: gql`
-      query User($login: String!) {
-        user(login:$login){
+      query User($username: String!) {
+        user(login:$username){
           repositoryDiscussionComments(first:50){
             totalCount
             nodes {
@@ -51,7 +55,7 @@ export default async function handler(
         }
       }
     `,
-    variables: { login },
+    variables: { username },
   });
 
   const discussionComments = data?.user?.repositoryDiscussionComments?.nodes?.filter(
@@ -64,7 +68,7 @@ export default async function handler(
       const wasPostedToday = today.toLocaleDateString() === createdDate.toLocaleDateString();
       const isInTargetRepo = targetRepos.some(id => discussionComment)
 
-      return discussionComment.author.login === login && wasPostedToday;
+      return discussionComment.author.login === username && wasPostedToday;
     })
     .map(
       (discussionComment: DiscussionCommentData) => {
